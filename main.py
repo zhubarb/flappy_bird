@@ -1,9 +1,8 @@
 import pygame
 import sys
 import random
-import math
-import os
 from bird import Bird
+from pipe import Pipe
 
 # Initialize pygame
 pygame.init()
@@ -26,7 +25,7 @@ BLACK = (0, 0, 0)
 # Game variables
 clock = pygame.time.Clock()
 FPS = 60
-GRAVITY = 0.5
+GRAVITY = 0.3
 FLAP_STRENGTH = -10
 GAME_SPEED = 3
 PIPE_FREQUENCY = 1800  # milliseconds
@@ -39,99 +38,6 @@ GROUND_HEIGHT = 100
 score = 0
 font = pygame.font.SysFont('Arial', 32)
 
-class Pipe:
-    def __init__(self, x, score_count, total_pipes):
-        self.x = x
-        self.height = 0
-        self.top = 0
-        self.bottom = 0
-        self.PIPE_TOP = pygame.Surface((SCREEN_WIDTH // 10, SCREEN_HEIGHT))
-        self.PIPE_TOP.fill(GREEN)
-        self.PIPE_BOTTOM = pygame.Surface((SCREEN_WIDTH // 10, SCREEN_HEIGHT))
-        self.PIPE_BOTTOM.fill(GREEN)
-        self.passed = False
-
-        # Calculate the current gap size based on how many pipes have been generated
-        progress = min(1.0, total_pipes / 50)  # Reaches minimum after 50 pipes
-        self.gap = PIPE_GAP_START - (PIPE_GAP_START - PIPE_GAP_MIN) * progress
-
-        self.set_height()
-
-    def set_height(self):
-        # Create a true random height between 20% and 80% of usable screen space
-        usable_height = SCREEN_HEIGHT - GROUND_HEIGHT
-
-        # Ensure the gap can fit within the usable height
-        max_pipe_height = usable_height - self.gap
-
-        # Choose a random position for the gap center point
-        gap_center = random.randint(
-            int(usable_height * 0.2),  # Not too close to the top
-            int(usable_height * 0.8)  # Not too close to the ground
-        )
-
-        # Calculate top and bottom pipe positions based on the gap center
-        self.height = gap_center - (self.gap // 2)
-        self.top = self.height - self.PIPE_TOP.get_height()
-        self.bottom = gap_center + (self.gap // 2)
-
-        # Safety checks to prevent pipes from extending beyond screen boundaries
-        if self.bottom > SCREEN_HEIGHT - GROUND_HEIGHT:
-            shift = self.bottom - (SCREEN_HEIGHT - GROUND_HEIGHT)
-            self.bottom -= shift
-            self.height -= shift
-            self.top -= shift
-
-        if self.height < 0:
-            shift = abs(self.height)
-            self.height += shift
-            self.top += shift
-            self.bottom += shift
-
-    def update(self):
-        self.x -= GAME_SPEED
-        return self.x > -self.PIPE_TOP.get_width()
-
-    def draw(self):
-        # Draw pipe bodies
-        screen.blit(self.PIPE_TOP, (self.x, self.top))
-        screen.blit(self.PIPE_BOTTOM, (self.x, self.bottom))
-
-        # Draw pipe caps
-        cap_width = int(SCREEN_WIDTH // 8)
-        cap_height = 20
-
-        # Top pipe cap
-        pygame.draw.rect(screen, (0, 100, 0), (
-            self.x - 5,
-            self.height - cap_height,
-            cap_width,
-            cap_height
-        ))
-
-        # Bottom pipe cap
-        pygame.draw.rect(screen, (0, 100, 0), (
-            self.x - 5,
-            self.bottom,
-            cap_width,
-            cap_height
-        ))
-
-    def collide(self, bird):
-        # Get the updated collision rectangle from the bird
-        bird_rect = bird.get_collision_rect()
-
-        top_pipe = pygame.Rect(self.x, self.top, self.PIPE_TOP.get_width(), self.PIPE_TOP.get_height())
-        bottom_pipe = pygame.Rect(self.x, self.bottom, self.PIPE_BOTTOM.get_width(), self.PIPE_BOTTOM.get_height())
-
-        # Skip collision detection if bird is completely above screen (in buffer zone)
-        if bird.y < bird.top_buffer:
-            return False
-
-        if bird_rect.colliderect(top_pipe) or bird_rect.colliderect(bottom_pipe):
-            return True
-
-        return False
 
 class Food:
     def __init__(self, x, y):
@@ -266,6 +172,7 @@ def main():
     # Reset score when starting a new game
     score = 0
 
+    # Create bird with all necessary parameters
     bird = Bird(
         screen=screen,
         screen_width=SCREEN_WIDTH,
@@ -274,10 +181,17 @@ def main():
         flap_strength=FLAP_STRENGTH,
         ground_height=GROUND_HEIGHT
     )
+
     pipes = []
+    foods = []
     last_pipe_time = pygame.time.get_ticks()
+    last_food_time = pygame.time.get_ticks()
+    food_frequency = 3000  # milliseconds between food spawns
     total_pipes_generated = 0
     game_over = False
+
+    # Food counter display
+    food_count = 0
 
     # Game loop
     running = True
@@ -305,18 +219,35 @@ def main():
         current_time = pygame.time.get_ticks()
         if current_time - last_pipe_time > PIPE_FREQUENCY and not game_over:
             total_pipes_generated += 1
-            pipes.append(Pipe(SCREEN_WIDTH, score, total_pipes_generated))
+            # Create pipe with additional parameters
+            pipes.append(Pipe(
+                x=SCREEN_WIDTH,
+                score_count=score,
+                total_pipes=total_pipes_generated,
+                screen_width=SCREEN_WIDTH,
+                screen_height=SCREEN_HEIGHT,
+                ground_height=GROUND_HEIGHT,
+                game_speed=GAME_SPEED
+            ))
             last_pipe_time = current_time
+
+        # Add new food items
+        if current_time - last_food_time > food_frequency and not game_over:
+            # Generate food at random height
+            food_y = random.randint(50, SCREEN_HEIGHT - GROUND_HEIGHT - 50)
+            foods.append(Food(SCREEN_WIDTH, food_y))
+            last_food_time = current_time
+            # Gradually increase food frequency as game progresses
+            food_frequency = max(1500, 3000 - score * 50)  # Gets more frequent with score
 
         # Update and draw pipes
         for pipe in pipes[:]:
             if not pipe.update():
                 pipes.remove(pipe)
             else:
-                pipe.draw()
+                pipe.draw(screen)  # Pass screen to draw method
 
                 # Check for collisions - ONLY if bird is not in buffer zone
-                # This is the key change: No collision detection when bird is at or above top of screen
                 if bird.y > 0 and pipe.collide(bird):
                     game_over = True
                     bird.alive = False
@@ -325,6 +256,28 @@ def main():
                 if not pipe.passed and pipe.x < bird.x - 20:
                     pipe.passed = True
                     score += 1
+
+        # Update and draw food
+        for food in foods[:]:
+            if not food.update():
+                foods.remove(food)
+            else:
+                # Check for collision with bird
+                if food.active and food.collide(bird):
+                    bird.eat_food(food.food_type)
+                    food.active = False  # Deactivate food after collision
+                    foods.remove(food)  # Remove food from list
+                    food_count += 1
+
+                    # Play a sound if you have one
+                    # Add a visual effect for food eaten
+                    # food_sound.play()
+
+                    continue  # Skip drawing this food
+
+                # Only draw active food
+                if food.active:
+                    food.draw()
 
         # Update and draw bird
         if not game_over:
@@ -336,6 +289,14 @@ def main():
 
         # Display score
         display_score(score)
+
+        # Display food count
+        food_text = font.render(f'Food: {food_count}', True, WHITE)
+        screen.blit(food_text, (10, 50))
+
+        # Display bird size
+        size_text = font.render(f'Size: {bird.size_factor:.1f}x', True, WHITE)
+        screen.blit(size_text, (10, 90))
 
         # Check if bird has hit the ground
         if not bird.alive:
