@@ -51,7 +51,7 @@ class Bird:
         self.bounce_duration = 200  # milliseconds
         self.bounce_strength = -8  # Initial upward velocity when bouncing
         self.bounce_count = 0
-        self.max_bounces = 3  # Maximum number of bounces before game over
+        self.max_bounces = 5  # Maximum number of bounces before game over
 
     def update(self):
         # Apply gravity - heavier birds fall faster
@@ -77,9 +77,10 @@ class Bird:
                 self.vel_y = self.bounce_strength  # Bounce up
                 self.bounce_count += 1
 
-                # Check if max bounces exceeded
+                # No longer killing the bird when max_bounces is reached
+                # Just reset the counter after max_bounces is reached
                 if self.bounce_count >= self.max_bounces:
-                    self.alive = False
+                    self.bounce_count = 0
             # If already bouncing, just make sure velocity is bounce strength
             elif self.vel_y > 0:  # If moving downward
                 self.vel_y = self.bounce_strength  # Reset the bounce

@@ -3,6 +3,7 @@ import sys
 import random
 from bird import Bird
 from pipe import Pipe
+from food import Food
 
 # Initialize pygame
 pygame.init()
@@ -38,74 +39,6 @@ GROUND_HEIGHT = 100
 score = 0
 font = pygame.font.SysFont('Arial', 32)
 
-
-class Food:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.width = 20
-        self.height = 20
-        self.speed = GAME_SPEED * 1.5  # Food moves faster than pipes
-        self.active = True
-        self.food_type = random.choice(["seed", "worm", "berry"])
-        self.color = {
-            "seed": (240, 230, 140),  # Khaki
-            "worm": (255, 105, 180),  # Hot Pink
-            "berry": (65, 105, 225)  # Royal Blue
-        }[self.food_type]
-
-    def update(self):
-        self.x -= self.speed
-        # Return True if still on screen
-        return self.x > -self.width
-
-    def draw(self):
-        if self.food_type == "seed":
-            # Draw a seed
-            pygame.draw.ellipse(screen, self.color, (self.x, self.y, self.width, self.height))
-            pygame.draw.line(screen, (139, 69, 19), (self.x + self.width // 2, self.y - 5),
-                             (self.x + self.width // 2 + 5, self.y - 10), 2)
-
-        elif self.food_type == "worm":
-            # Draw a worm
-            for i in range(3):
-                offset = i * (self.width // 3)
-                pygame.draw.circle(screen, self.color,
-                                   (self.x + offset + self.width // 6, self.y + self.height // 2),
-                                   self.width // 6)
-            # Worm eyes
-            pygame.draw.circle(screen, (0, 0, 0),
-                               (self.x + 5, self.y + self.height // 2 - 2), 2)
-
-        elif self.food_type == "berry":
-            # Draw a berry
-            pygame.draw.circle(screen, self.color,
-                               (self.x + self.width // 2, self.y + self.height // 2),
-                               self.width // 2)
-            # Berry stem
-            pygame.draw.line(screen, (0, 100, 0),
-                             (self.x + self.width // 2, self.y),
-                             (self.x + self.width // 2, self.y - 5), 2)
-            # Berry highlight
-            pygame.draw.circle(screen, (255, 255, 255),
-                               (self.x + self.width // 3, self.y + self.height // 3), 3)
-
-    def collide(self, bird):
-        # Create rectangles for collision detection
-        food_rect = pygame.Rect(self.x, self.y, self.width, self.height)
-
-        # Use the bird's collision rectangle if available, otherwise create one
-        if hasattr(bird, 'get_collision_rect'):
-            bird_rect = bird.get_collision_rect()
-        else:
-            bird_rect = pygame.Rect(
-                bird.x - bird.collision_width // 2,
-                bird.y - bird.collision_height // 2,
-                bird.collision_width,
-                bird.collision_height
-            )
-
-        return food_rect.colliderect(bird_rect)
 
 def draw_ground():
     # Draw ground
@@ -235,7 +168,7 @@ def main():
         if current_time - last_food_time > food_frequency and not game_over:
             # Generate food at random height
             food_y = random.randint(50, SCREEN_HEIGHT - GROUND_HEIGHT - 50)
-            foods.append(Food(SCREEN_WIDTH, food_y))
+            foods.append(Food(SCREEN_WIDTH, food_y, GAME_SPEED))
             last_food_time = current_time
             # Gradually increase food frequency as game progresses
             food_frequency = max(1500, 3000 - score * 50)  # Gets more frequent with score
@@ -277,7 +210,7 @@ def main():
 
                 # Only draw active food
                 if food.active:
-                    food.draw()
+                    food.draw(screen)
 
         # Update and draw bird
         if not game_over:
