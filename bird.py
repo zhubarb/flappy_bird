@@ -77,8 +77,7 @@ class Bird:
                 self.vel_y = self.bounce_strength  # Bounce up
                 self.bounce_count += 1
 
-                # No longer killing the bird when max_bounces is reached
-                # Just reset the counter after max_bounces is reached
+                # Reset bounce count after max bounces, but don't kill the bird
                 if self.bounce_count >= self.max_bounces:
                     self.bounce_count = 0
             # If already bouncing, just make sure velocity is bounce strength
@@ -114,24 +113,13 @@ class Bird:
         self.collision_height = int(30 * self.size_factor)
 
     def get_collision_rect(self):
-        # Create collision rectangle - adjusted when bird is above screen
-        # This prevents collision detection when the bird is in the buffer zone
-        if self.y < 0:
-            # Make collision box smaller at the top to avoid collisions in buffer zone
-            return pygame.Rect(
-                self.x - self.collision_width // 2,
-                max(0, self.y - self.collision_height // 2),  # Ensure bottom of collision box is visible
-                self.collision_width,
-                max(1, self.collision_height // 2 + self.y)  # Only the visible part
-            )
-        else:
-            # Normal collision box
-            return pygame.Rect(
-                self.x - self.collision_width // 2,
-                self.y - self.collision_height // 2,
-                self.collision_width,
-                self.collision_height
-            )
+        # Simple collision box - pipe collision logic handles buffer zone
+        return pygame.Rect(
+            self.x - self.collision_width // 2,
+            self.y - self.collision_height // 2,
+            self.collision_width,
+            self.collision_height
+        )
 
     def draw(self):
         # Skip drawing if bird is completely above screen

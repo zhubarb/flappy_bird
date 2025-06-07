@@ -180,8 +180,8 @@ def main():
             else:
                 pipe.draw(screen)  # Pass screen to draw method
 
-                # Check for collisions - ONLY if bird is not in buffer zone
-                if bird.y > 0 and pipe.collide(bird):
+                # Check for collisions
+                if pipe.collide(bird):
                     game_over = True
                     bird.alive = False
 

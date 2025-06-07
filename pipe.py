@@ -88,17 +88,17 @@ class Pipe:
         ))
 
     def collide(self, bird):
-        # Get the updated collision rectangle from the bird
+        # Get collision rectangles - only for visible parts of pipes
         bird_rect = bird.get_collision_rect()
+        
+        # Top pipe: only the part from y=0 to self.height (visible part)
+        if self.height > 0:
+            top_pipe = pygame.Rect(self.x, 0, self.PIPE_TOP.get_width(), self.height)
+        else:
+            top_pipe = pygame.Rect(0, 0, 0, 0)  # No visible top pipe
+            
+        # Bottom pipe: from self.bottom to screen bottom
+        bottom_pipe = pygame.Rect(self.x, self.bottom, self.PIPE_BOTTOM.get_width(), 
+                                 self.SCREEN_HEIGHT - self.GROUND_HEIGHT - self.bottom)
 
-        top_pipe = pygame.Rect(self.x, self.top, self.PIPE_TOP.get_width(), self.PIPE_TOP.get_height())
-        bottom_pipe = pygame.Rect(self.x, self.bottom, self.PIPE_BOTTOM.get_width(), self.PIPE_BOTTOM.get_height())
-
-        # Skip collision detection if bird is completely above screen (in buffer zone)
-        if bird.y < bird.top_buffer:
-            return False
-
-        if bird_rect.colliderect(top_pipe) or bird_rect.colliderect(bottom_pipe):
-            return True
-
-        return False
+        return bird_rect.colliderect(top_pipe) or bird_rect.colliderect(bottom_pipe)
