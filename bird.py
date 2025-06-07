@@ -53,8 +53,13 @@ class Bird:
         self.bounce_count = 0
         self.max_bounces = 5  # Maximum number of bounces before game over
 
+        # Collision state
+        self.is_collided = False
+        self.collision_time = 0
+
     def update(self):
         # Apply gravity - heavier birds fall faster
+        # Allow falling even when collided
         self.vel_y += self.GRAVITY * self.size_factor
         self.y += self.vel_y
 
@@ -94,6 +99,9 @@ class Bird:
             self.vel_y = 0
 
     def flap(self):
+        # Don't allow flapping after collision
+        if self.is_collided:
+            return
         # Heavier birds have weaker flaps
         self.vel_y = self.FLAP_STRENGTH / self.size_factor
 
@@ -111,6 +119,10 @@ class Bird:
         # Update collision box dimensions
         self.collision_width = int(30 * self.size_factor)
         self.collision_height = int(30 * self.size_factor)
+
+    def set_collision(self):
+        self.is_collided = True
+        self.collision_time = pygame.time.get_ticks()
 
     def get_collision_rect(self):
         # Simple collision box - pipe collision logic handles buffer zone
@@ -172,12 +184,21 @@ class Bird:
             int(12 * self.size_factor)
         ), 0, 3.14, 2)
 
-        # Bird beak - more pointed and bird-like
-        pygame.draw.polygon(self.screen, ORANGE, [
-            (self.x + int(18 * self.size_factor), self.y - int(5 * self.size_factor)),
-            (self.x + int(32 * self.size_factor), self.y),
-            (self.x + int(18 * self.size_factor), self.y + int(5 * self.size_factor))
-        ])
+        # Bird beak - normal or flattened based on collision state
+        if self.is_collided:
+            # Flattened beak for collision state
+            pygame.draw.polygon(self.screen, ORANGE, [
+                (self.x + int(18 * self.size_factor), self.y - int(3 * self.size_factor)),
+                (self.x + int(25 * self.size_factor), self.y),
+                (self.x + int(18 * self.size_factor), self.y + int(3 * self.size_factor))
+            ])
+        else:
+            # Normal pointed beak
+            pygame.draw.polygon(self.screen, ORANGE, [
+                (self.x + int(18 * self.size_factor), self.y - int(5 * self.size_factor)),
+                (self.x + int(32 * self.size_factor), self.y),
+                (self.x + int(18 * self.size_factor), self.y + int(5 * self.size_factor))
+            ])
 
         # Bird eye - larger with more detail
         pygame.draw.circle(self.screen, BLACK, (

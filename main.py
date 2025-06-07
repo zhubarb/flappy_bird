@@ -175,26 +175,33 @@ def main():
 
         # Update and draw pipes
         for pipe in pipes[:]:
-            if not pipe.update():
-                pipes.remove(pipe)
-            else:
-                pipe.draw(screen)  # Pass screen to draw method
+            # Only update pipes if game is not over
+            if not game_over:
+                if not pipe.update():
+                    pipes.remove(pipe)
+                    continue
+            
+            pipe.draw(screen)  # Pass screen to draw method
 
-                # Check for collisions
-                if pipe.collide(bird):
-                    game_over = True
-                    bird.alive = False
+            # Check for collisions
+            if pipe.collide(bird) and not game_over:
+                game_over = True
+                bird.alive = False
+                bird.set_collision()
 
-                # Check if pipe is passed
-                if not pipe.passed and pipe.x < bird.x - 20:
-                    pipe.passed = True
-                    score += 1
+            # Check if pipe is passed (only if game not over)
+            if not game_over and not pipe.passed and pipe.x < bird.x - 20:
+                pipe.passed = True
+                score += 1
 
         # Update and draw food
         for food in foods[:]:
-            if not food.update():
-                foods.remove(food)
-            else:
+            # Only update food if game is not over
+            if not game_over:
+                if not food.update():
+                    foods.remove(food)
+                    continue
+                    
                 # Check for collision with bird
                 if food.active and food.collide(bird):
                     bird.eat_food(food.food_type)
@@ -208,13 +215,13 @@ def main():
 
                     continue  # Skip drawing this food
 
-                # Only draw active food
-                if food.active:
-                    food.draw(screen)
+            # Only draw active food
+            if food.active:
+                food.draw(screen)
 
         # Update and draw bird
-        if not game_over:
-            bird.update()
+        # Always update bird to allow falling after collision
+        bird.update()
         bird.draw()
 
         # Draw ground
